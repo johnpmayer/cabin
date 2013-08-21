@@ -1,0 +1,62 @@
+#!/usr/bin/ksh
+
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e -u
+
+CABINFILE="./cabin.pkg"
+
+function exists_pkg_file
+{
+  if [ -f ${CABINFILE} ]
+  then
+    return 0
+  fi
+  echo >&2 "Missing file ${CABINFILE}"
+  return 1
+}
+
+function exists_pkg
+{
+  pkg=$1
+  version=$2
+  return 1
+}
+
+function checkout_ver
+{
+  ver=$1
+  git fetch --tags
+  git checkout ${ver}
+}
+
+function fetch_pkg
+{
+  pkg=$1
+  repo=$2
+  ver=$3
+  git clone "https://github.com/${repo}" ${pkg}
+  (cd ${pkg}; checkout_ver ${ver})
+}
+
+exists_pkg_file
+cat ${CABINFILE} | while read pkg repo ver
+do
+  if ! exists_pkg ${pkg} ${ver}
+  then
+    echo "Need to fetch ${pkg} ${ver} from ${repo}"
+    mkdir -p "Public"
+    (cd "Public"; fetch_pkg ${pkg} ${repo} ${ver})
+  fi
+done
